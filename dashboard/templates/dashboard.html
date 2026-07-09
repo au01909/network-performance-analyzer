@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Network Performance Analyzer — Live Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --accent:#4C6EF5; --bg:#0f1117; --card:#171a23; --text:#e7e9ee; --muted:#9aa1b1; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 24px 40px; border-bottom: 1px solid #262a35; display:flex; align-items:center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#40c057; margin-right:8px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%{opacity:1} 50%{opacity:.3} 100%{opacity:1} }
+  .container { padding: 28px 40px; max-width: 1300px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .card { background: var(--card); border-radius: 10px; padding: 16px 18px; border: 1px solid #262a35; }
+  .card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing:.04em; margin-bottom:6px; }
+  .card .value { font-size: 24px; font-weight: 600; }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-card { background: var(--card); border-radius: 10px; padding: 16px; border: 1px solid #262a35; }
+  .chart-card h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); font-weight: 500; }
+  canvas { max-height: 260px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>Network Performance Analyzer</h1>
+  <span id="uptime" style="color:var(--muted); font-size: 13px;"></span>
+</header>
+<div class="container">
+  <div class="grid">
+    <div class="card"><div class="label">Requests/sec</div><div class="value" id="m-rps">–</div></div>
+    <div class="card"><div class="label">Active Total</div><div class="value" id="m-total">–</div></div>
+    <div class="card"><div class="label">Error Rate</div><div class="value" id="m-error">–</div></div>
+    <div class="card"><div class="label">P95 Latency</div><div class="value" id="m-p95">–</div></div>
+    <div class="card"><div class="label">CPU</div><div class="value" id="m-cpu">–</div></div>
+    <div class="card"><div class="label">Memory</div><div class="value" id="m-mem">–</div></div>
+  </div>
+  <div class="charts">
+    <div class="chart-card"><h3>Requests / sec over time</h3><canvas id="chartRps"></canvas></div>
+    <div class="chart-card"><h3>P95 / P99 latency over time (ms)</h3><canvas id="chartLatency"></canvas></div>
+  </div>
+</div>
+
+<script>
+const rpsChart = new Chart(document.getElementById('chartRps'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'req/s', data: [], borderColor: '#4C6EF5', backgroundColor: 'rgba(76,110,245,0.15)', fill: true, tension: 0.3 }] },
+  options: { animation: false, scales: { x: { display: false }, y: { beginAtZero: true } } }
+});
+
+const latencyChart = new Chart(document.getElementById('chartLatency'), {
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'P95', data: [], borderColor: '#F59F00', tension: 0.3 },
+    { label: 'P99', data: [], borderColor: '#E03131', tension: 0.3 },
+  ]},
+  options: { animation: false, scales: { x: { display: false }, y: { beginAtZero: true } } }
+});
+
+function fmtPct(x) { return (x * 100).toFixed(2) + '%'; }
+function fmtMs(x) { return (x * 1000).toFixed(0) + ' ms'; }
+
+async function poll() {
+  try {
+    const res = await fetch('/api/metrics');
+    if (res.ok) {
+      const m = await res.json();
+      document.getElementById('m-rps').textContent = m.requests_per_sec.toFixed(1);
+      document.getElementById('m-total').textContent = m.total_requests;
+      document.getElementById('m-error').textContent = fmtPct(m.error_rate);
+      document.getElementById('m-p95').textContent = fmtMs(m.p95);
+      document.getElementById('m-cpu').textContent = m.cpu_percent != null ? m.cpu_percent.toFixed(0) + '%' : 'n/a';
+      document.getElementById('m-mem').textContent = m.memory_percent != null ? m.memory_percent.toFixed(0) + '%' : 'n/a';
+      document.getElementById('uptime').textContent = 'uptime: ' + m.uptime_seconds.toFixed(0) + 's';
+    }
+
+    const tRes = await fetch('/api/timeline');
+    if (tRes.ok) {
+      const timeline = await tRes.json();
+      const labels = timeline.map((_, i) => i);
+      rpsChart.data.labels = labels;
+      rpsChart.data.datasets[0].data = timeline.map(p => p.requests_per_sec);
+      rpsChart.update();
+
+      latencyChart.data.labels = labels;
+      latencyChart.data.datasets[0].data = timeline.map(p => p.p95 * 1000);
+      latencyChart.data.datasets[1].data = timeline.map(p => p.p99 * 1000);
+      latencyChart.update();
+    }
+  } catch (e) { console.error(e); }
+}
+
+setInterval(poll, 1000);
+poll();
+</script>
+</body>
+</html>

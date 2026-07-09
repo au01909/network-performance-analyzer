@@ -1,0 +1,89 @@
+services:
+
+  dashboard:
+    build: .
+    image: network-performance-analyzer:latest
+    container_name: netperf-dashboard
+
+    ports:
+      - "5000:5000"
+
+    command:
+      [
+        "dashboard",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000"
+      ]
+
+    restart: unless-stopped
+
+  loadtest:
+    build: .
+    image: network-performance-analyzer:latest
+    container_name: netperf-loadtest
+
+    depends_on:
+      - dashboard
+
+    volumes:
+      - ./reports_output:/app/reports_output
+
+    command:
+      [
+        "loadtest",
+        "https://www.google.com",
+        "--users",
+        "20",
+        "--ramp-up",
+        "5",
+        "--duration",
+        "20",
+        "--dashboard",
+        "--output-dir",
+        "/app/reports_output"
+      ]
+
+    profiles:
+      - loadtest
+
+  demo:
+    build: .
+    image: network-performance-analyzer:latest
+    container_name: netperf-demo
+
+    volumes:
+      - ./reports_output:/app/reports_output
+
+    entrypoint:
+      [
+        "/bin/bash",
+        "./run_demo.sh"
+      ]
+
+    profiles:
+      - demo
+
+  capture:
+    build: .
+    image: network-performance-analyzer:latest
+    container_name: netperf-capture
+
+    network_mode: host
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    command:
+      [
+        "capture",
+        "--interface",
+        "eth0",
+        "--duration",
+        "30"
+      ]
+
+    profiles:
+      - capture
