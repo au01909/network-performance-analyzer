@@ -3,6 +3,20 @@
 A modular Python framework for **network traffic analysis**, **HTTP load testing**, **performance monitoring**, and **automated bottleneck detection**. The project combines live packet capture, protocol inspection, concurrent HTTP load generation, a real-time Flask dashboard, and HTML/JSON/CSV reporting behind a single command-line interface.
 
 ---
+Report Dashboard: 
+
+<img width="1457" height="852" alt="Screenshot 2026-07-09 at 6 41 18 PM" src="https://github.com/user-attachments/assets/2d7a7425-f948-4d67-9717-3a3d65cc55fa" />
+
+<img width="1447" height="795" alt="Screenshot 2026-07-09 at 6 41 25 PM" src="https://github.com/user-attachments/assets/56262188-0c27-43d7-910b-b84816a488e9" />
+
+Network Dashboard :
+
+ <img width="1450" height="645" alt="Screenshot 2026-07-09 at 10 03 57 PM" src="https://github.com/user-attachments/assets/7394d137-f9b6-452a-8706-ebcbf7f07a83" />
+
+Terminal Screenshot: 
+
+<img width="973" height="283" alt="Screenshot 2026-07-09 at 10 04 29 PM" src="https://github.com/user-attachments/assets/e0cf2972-fb1d-43e2-a304-5c7f7670b29b" />
+
 
 # Features
 
